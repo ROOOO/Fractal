@@ -2,7 +2,7 @@
 Graduate project.<br>
 
 ##Mac
-Just use it.
+Enjoy. :relaxed:
 
 ##Windows
 1.Comment \<glut/glut.h> in macro.h.<br>
