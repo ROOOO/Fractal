@@ -292,6 +292,7 @@ void drawAxis(double length)
     glPushMatrix();
     glRotatef(pos.ry, 0, 1, 0);
     glRotatef(pos.rx, 0, 0, 1);
+    glScalef(pos.s, pos.s, pos.s);
     
     glColor3d(0, 0, 1);
     axis(length);
@@ -329,6 +330,7 @@ void drawGrid(int gridLength)
         glPushMatrix();
         glRotatef(pos.ry, 0, 1, 0);
         glRotatef(pos.rx, 0, 0, 1);
+        glScalef(pos.s, pos.s, pos.s);
         
         glPushMatrix();
         glTranslated(0, 0, i);
@@ -377,6 +379,7 @@ void drawDLA3D()
     glPushMatrix();
     glRotatef(pos.ry, 0, 1, 0);
     glRotatef(pos.rx, 0, 0, 1);
+    glScalef(pos.s, pos.s, pos.s);
     
     for (GLint x = 0; x < maxPixels; x++)
     {
@@ -413,6 +416,14 @@ void display3D()
 void keyBoard(unsigned char key, int x, int y)
 {
     //DLA();
+    if (key == '+') {
+        pos.s += 0.1;
+    }
+    else if (key == '-')
+    {
+        pos.s -= 0.1;
+    }
+    
     glutPostRedisplay();
 }
 

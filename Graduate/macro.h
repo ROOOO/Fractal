@@ -27,7 +27,7 @@ const int windowHeight = 700;
 
 const int movingRadius = 30;
 
-const int maxPixels = 10000;
+const int maxPixels = 20000;
 
 const int initRadiusRatio = 2;
 
