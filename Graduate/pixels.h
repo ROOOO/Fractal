@@ -18,17 +18,21 @@ public:
     ~pixels();
     
     void init(GLint x, GLint y, GLint radius, int tag); //All the pixels need to be inited at first.
+    void init(GLint x, GLint y, GLint z, GLint radius, int tag);
     
     void movingProbability();
     void movingProbability(float up, float down, float left, float right, float topLeft, float topRight, float bottomLeft, float bottomRight);
     
     void moveOneStep();
+    void moveOneStep3D();
     
     bool judgeOutOfRange(GLint windowWidth, GLint windowHeight);
+    bool judgeOutOfRange(GLint maxX, GLint maxY, GLint maxZ);
 
     
     GLint getPositionX();
     GLint getPositionY();
+    GLint getPositionZ();
     
     void setOnTree(bool onTree);
     bool isOnTree();
@@ -89,12 +93,23 @@ private:
         int m_bottomRightProbability;
     }m_directionProbability;
     
+//    struct m_direction3D
+//    {
+//        float m_;
+//    }m_direction3D;
+//    struct m_directionProbability3D
+//    {
+//        
+//    }m_directionProbability3D;
+    
     struct position
     {
         GLint oX;
         GLint oY;
+        GLint oZ;
         GLint x;
         GLint y;
+        GLint z;
     }m_position;
 };
 

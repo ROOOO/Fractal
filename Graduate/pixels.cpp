@@ -41,6 +41,22 @@ void pixels::init(GLint x, GLint y, GLint radius, int tag)
     
     m_tag = tag;
 }
+void pixels::init(GLint x, GLint y, GLint z, GLint radius, int tag)
+{
+    m_onTree = false;
+    m_disappear = false;
+    m_position.oX = x;
+    m_position.oY = y;
+    m_position.oZ = z;
+    m_position.x = x;
+    m_position.y = y;
+    m_position.z = z;
+    
+    m_setRadius(radius);
+    movingProbability();
+    
+    m_tag = tag;
+}
 
 void pixels::m_setColor(float red, float green, float blue)
 {
@@ -116,6 +132,24 @@ bool pixels::judgeOutOfRange(GLint windowWidth, GLint windowHeight)
         return false;
     }
 }
+bool pixels::judgeOutOfRange(GLint maxX, GLint maxY, GLint maxZ)
+{
+    if (isDisappear()) {
+        return true;
+    }
+    
+    if (m_position.x < 0 || m_position.x > max3DX ||
+        m_position.y < 0 || m_position.y > max3DY ||
+        m_position.z < 0 || m_position.z > max3DZ ||
+        (m_position.x - m_position.oX) * (m_position.x - m_position.oX) * (m_position.x - m_position.oX) +
+        (m_position.y - m_position.oY) * (m_position.y - m_position.oY) * (m_position.y - m_position.oY) +
+        (m_position.z - m_position.oZ) * (m_position.z - m_position.oZ) * (m_position.z - m_position.oZ) >
+        m_radius * m_radius * m_radius) {
+        setDisappear(true);
+        return true;
+    }
+    return false;
+}
 
 void pixels::setOnTree(bool onTree)
 {
@@ -178,6 +212,13 @@ void pixels::moveOneStep()
     }
 }
 
+void pixels::moveOneStep3D()
+{
+    m_position.x += rand() % 2 - 1;
+    m_position.y += rand() % 2 - 1;
+    m_position.z += rand() % 2 - 1;
+}
+
 GLint pixels::getPositionX()
 {
     return m_position.x;
@@ -185,6 +226,10 @@ GLint pixels::getPositionX()
 GLint pixels::getPositionY()
 {
     return m_position.y;
+}
+GLint pixels::getPositionZ()
+{
+    return m_position.z;
 }
 
 void pixels::gravity(float gv, int type)
@@ -215,7 +260,7 @@ void pixels::update()
     if (isOnTree())
     {
         if (m_tag == 0)
-        m_setColor(1.0, 1.0, 0.0);
+            m_setColor(1.0, 1.0, 0.0);
         else if (m_tag == 1)
             m_setColor(0.0, 1.0, 1.0);
         else
@@ -227,12 +272,12 @@ void pixels::update()
     }
     else
     {
-        if (m_tag == 0)
-            m_setColor(1.0, 1.0, 0.0);
-        else if (m_tag == 1)
-            m_setColor(0.0, 1.0, 1.0);
-        else
-            m_setColor(1.0, 0.0, 1.0);
-     //   m_setColor(1.0, 0.0, 0.0);
+//        if (m_tag == 0)
+//            m_setColor(1.0, 1.0, 0.0);
+//        else if (m_tag == 1)
+//            m_setColor(0.0, 1.0, 1.0);
+//        else
+//            m_setColor(1.0, 0.0, 1.0);
+           m_setColor(1.0, 0.0, 0.0);
     }
 }
