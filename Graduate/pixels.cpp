@@ -41,7 +41,7 @@ void pixels::init(GLint x, GLint y, GLint radius, int tag)
     
     m_tag = tag;
 }
-void pixels::init(GLint x, GLint y, GLint z, GLint radius, int tag)
+void pixels::init3D(GLint x, GLint y, GLint z, GLint radius, int tag)
 {
     m_onTree = false;
     m_disappear = false;
@@ -268,16 +268,19 @@ void pixels::update()
     }
     else if (m_disappear)
     {
-        m_setColor(0.0, 0.0, 0.0);
+        //    m_setColor(0.0, 0.0, 0.0);
     }
     else
     {
-//        if (m_tag == 0)
-//            m_setColor(1.0, 1.0, 0.0);
-//        else if (m_tag == 1)
-//            m_setColor(0.0, 1.0, 1.0);
-//        else
-//            m_setColor(1.0, 0.0, 1.0);
-           m_setColor(1.0, 0.0, 0.0);
+        if (!is3D)
+        {
+            if (m_tag == 0)
+                m_setColor(1.0, 1.0, 0.0);
+            else if (m_tag == 1)
+                m_setColor(0.0, 1.0, 1.0);
+            else
+                m_setColor(1.0, 0.0, 1.0);
+        }
+        m_setColor(1.0, 0.0, 0.0);
     }
 }

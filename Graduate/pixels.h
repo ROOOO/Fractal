@@ -18,7 +18,7 @@ public:
     ~pixels();
     
     void init(GLint x, GLint y, GLint radius, int tag); //All the pixels need to be inited at first.
-    void init(GLint x, GLint y, GLint z, GLint radius, int tag);
+    void init3D(GLint x, GLint y, GLint z, GLint radius, int tag);
     
     void movingProbability();
     void movingProbability(float up, float down, float left, float right, float topLeft, float topRight, float bottomLeft, float bottomRight);
@@ -58,8 +58,8 @@ private:
     float m_radius;
     
     bool m_onTree;
-    bool m_disappear;
-    
+        bool m_disappear;
+   
     struct m_color
     {
         GLfloat m_red;

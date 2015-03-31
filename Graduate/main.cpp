@@ -12,7 +12,14 @@
 #include "macro.h"
 //#include <assert.h>
 
-#if (0) // 2D
+struct position
+{
+    float tx, ty, tz;
+    float rx, ry, rz;
+    float s;
+    float angle;
+}pos;
+
 struct particlesMap
 {
     bool onTree;
@@ -151,12 +158,15 @@ void drawDLA()
 {
     for (GLint x = 0; x < maxPixels; x++)
     {
-        glBegin(GL_POINTS);
+        if(!particles[x].isDisappear())
         {
-            glColor3f(particles[x].getColorRed(), particles[x].getColorGreen(), particles[x].getColorBlue());
-            glVertex2i(particles[x].getPositionX(), particles[x].getPositionY());
+            glBegin(GL_POINTS);
+            {
+                glColor3f(particles[x].getColorRed(), particles[x].getColorGreen(), particles[x].getColorBlue());
+                glVertex2i(particles[x].getPositionX(), particles[x].getPositionY());
+            }
+            glEnd();
         }
-        glEnd();
     }
 }
 
@@ -175,9 +185,7 @@ void Display()
     glutSwapBuffers();
     glutPostRedisplay();
 }
-#endif
 
-#if (1)
 struct particlesMap3D
 {
     bool onTree;
@@ -198,31 +206,45 @@ bool isNearTree3D(GLint x, GLint y, GLint z, GLint tag)
     int ymin = y - 1 > -1 ? y - 1 : 0, ymax = y + 1 < max3DY ? y + 1 : max3DY - 1;
     int zmin = z - 1 > -1 ? z - 1 : 0, zmax = z + 1 < max3DZ ? z + 1 : max3DZ - 1;
     
-    for (int i = xmin; i <= xmax; i++)
-    {
-        for (int j = ymin; j <= ymax; j++)
+    //    cout << x << "   " << y << "    " << z << endl;
+    
+        for (int i = xmin; i <= xmax; i++)
         {
-            for (int k = zmin; k <= zmax; k++)
+            for (int j = ymin; j <= ymax; j++)
             {
-                if (!(i == x && j == y && k == z) &&
-                    particlesMap3D[i][j][k].tag == tag &&
-                    particlesMap3D[i][j][k].onTree)
+                for (int k = zmin; k <= zmax; k++)
                 {
-                    return true;
+                    if (!(i == x && j == y && k == z) &&
+                        particlesMap3D[i][j][k].tag == tag &&
+                        particlesMap3D[i][j][k].onTree)
+                    {
+                        return true;
+                    }
                 }
             }
         }
-    }
+    
+//    x = x > -1 ? x : 0; x = x < max3DX ? x : max3DX - 1;
+//    y = y > -1 ? y : 0; y = y < max3DY ? y : max3DY - 1;
+//    z = z > -1 ? z : 0; z = z < max3DZ ? z : max3DZ - 1;
+//    
+//    if (particlesMap3D[xmin][y][z].tag == tag && particlesMap3D[xmin][y][z].onTree)
+//        return true;
+//    else if (particlesMap3D[xmax][y][z].tag == tag && particlesMap3D[xmax][y][z].onTree)
+//        return true;
+//    else if (particlesMap3D[x][ymin][z].tag == tag && particlesMap3D[x][ymin][z].onTree)
+//        return true;
+//    else if (particlesMap3D[x][ymax][z].tag == tag && particlesMap3D[x][ymax][z].onTree)
+//        return true;
+//    else if (particlesMap3D[x][y][zmin].tag == tag && particlesMap3D[x][y][zmin].onTree)
+//        return true;
+//    else if (particlesMap3D[x][y][zmax].tag == tag && particlesMap3D[x][y][zmax].onTree)
+//        return true;
+    
+    
     return false;
 }
 
-struct position
-{
-    float tx, ty, tz;
-    float rx, ry, rz;
-    float s;
-    float angle;
-}pos;
 void init3D()
 {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
@@ -249,22 +271,27 @@ void init3D()
     
     srand((unsigned int)time(0));
     
+    static int a = 0;
+    
     for (int i = 0; i < max3DX; i++) {
         for (int j = 0; j < max3DY; j++) {
             for (int k = 0; k < max3DZ; k++) {
                 particlesMap3D[i][j][k].onTree = false;
-//                particlesMap3D[i][j][k].tag = 0;
+                //                particlesMap3D[i][j][k].tag = 0;
+                //                cout << a++ << endl;
             }
         }
     }
     
     for (int i = 0; i <= maxPixels; i++) {
-        particles3D[i].init(rand() % max3DX, rand() % max3DY, rand() % max3DZ, movingRadius, 0);
+        particles3D[i].init3D(rand() % max3DX, rand() % max3DY, rand() % max3DZ, movingRadius, 0);
     }
     
     pos.rx = pos.ry = pos.tx = pos.ry = pos.rz = pos.tz = 0;
     pos.s = 1;
     pos.angle = 0;
+    
+//    glPointSize(1.0f);
 }
 
 void axis(double length)
@@ -349,7 +376,7 @@ void drawGrid(int gridLength)
 
 void DLA3D()
 {
-    particles3D[0].init(max3DX / 2, max3DY / 2, max3DZ / 2, movingRadius, 0);
+    particles3D[0].init3D(max3DX / 2, max3DY / 2, max3DZ / 2, movingRadius, 0);
     particles3D[0].setOnTree(true);
     setMap3D(particles3D[0].getPositionX(), particles3D[0].getPositionY(), particles3D[0].getPositionZ(), 0);
     
@@ -383,19 +410,25 @@ void drawDLA3D()
     
     for (GLint x = 0; x < maxPixels; x++)
     {
-        glBegin(GL_POINTS);
+        if(!particles3D[x].isDisappear())
         {
-            glColor3f(particles3D[x].getColorRed(), particles3D[x].getColorGreen(), particles3D[x].getColorBlue());
-            glVertex3i(particles3D[x].getPositionX(), particles3D[x].getPositionY(), particles3D[x].getPositionZ());
+            glBegin(GL_POINTS);
+            {
+                glColor3f(particles3D[x].getColorRed(), particles3D[x].getColorGreen(), particles3D[x].getColorBlue());
+                glVertex3i(particles3D[x].getPositionX(), particles3D[x].getPositionY(), particles3D[x].getPositionZ());
+            }
+            glEnd();
         }
-        glEnd();
     }
+    
     glPopMatrix();
 }
 
 void display3D()
 {
+    //glClearColor(1, 1, 1, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    glEnable(GL_POINT_SMOOTH);
     
     drawGrid(100);
     drawAxis(50);
@@ -410,8 +443,6 @@ void display3D()
     glutSwapBuffers();
     glutPostRedisplay();
 }
-
-#endif
 
 void keyBoard(unsigned char key, int x, int y)
 {
@@ -455,12 +486,16 @@ int main(int argc, char ** argv)
 {
     glutInit(&argc, argv);
     
-    //    init();
-    //    glutDisplayFunc(Display);
-    
-    init3D();
-    glutDisplayFunc(display3D);
-    
+    if (!is3D)
+    {
+    init();
+    glutDisplayFunc(Display);
+    }
+    else
+    {
+        init3D();
+        glutDisplayFunc(display3D);
+    }
     glutKeyboardFunc(keyBoard);
     
     glutMouseFunc(mouse);

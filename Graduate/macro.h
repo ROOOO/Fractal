@@ -27,7 +27,7 @@ const int windowHeight = 700;
 
 const int movingRadius = 30;
 
-const int maxPixels = 20000;
+const int maxPixels = 30000;
 
 const int initRadiusRatio = 2;
 
@@ -38,4 +38,7 @@ const GLfloat epsilon = 0.005;
 const int max3DX = 100;
 const int max3DY = 100;
 const int max3DZ = 100;
+
+const bool is3D = false; // 3D setting.
+
 #endif /* defined(__Graduate__macro__) */
