@@ -25,20 +25,21 @@ using namespace std;
 const int windowWidth = 700;
 const int windowHeight = 700;
 
-const int movingRadius = 30;
+const int movingRadius = 30;    // 最大移动半径
 
-const int maxPixels = 30000;
+const int maxPixels = 30000;    // 最大粒子数
 
-const int initRadiusRatio = 2;
+const int initRadiusRatio = 2; // 比例
 
-const int initRadius = 100;
+const int initRadius = 100;  // 初始粒子生成半径
 
-const GLfloat epsilon = 0.005;
+const GLfloat epsilon = 0.005; // 误差限
 
+// 下面3个分别表示初始粒子最大的 x、y、z坐标
 const int max3DX = 100;
 const int max3DY = 100;
 const int max3DZ = 100;
 
-const bool is3D = false; // 3D setting.
+const bool is3D = false; // 是否需要 3D 现实
 
 #endif /* defined(__Graduate__macro__) */
