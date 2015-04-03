@@ -26,7 +26,6 @@ struct particlesMap   // 窗口所有像素点组成的二维数组
     int tag;            // 标记（用于多种颜色）
 }particlesMap[windowWidth][windowHeight];
 
-//bool (*particlesMap)[windowHeight] = new bool[windowWidth][windowHeight];
 pixels (*particles) = new pixels[maxPixels];        //一定数量的粒子
 
 //void mySetOnTree(int x,int y)
