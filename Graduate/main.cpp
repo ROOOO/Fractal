@@ -12,7 +12,7 @@
 #include "macro.h"
 //#include <assert.h>
 
-struct position
+struct position         // 用于3D交互，纪录鼠标位移、缩放
 {
     float tx, ty, tz;
     float rx, ry, rz;
@@ -20,14 +20,14 @@ struct position
     float angle;
 }pos;
 
-struct particlesMap
+struct particlesMap   // 窗口所有像素点组成的二维数组
 {
-    bool onTree;
-    int tag;
+    bool onTree;        // 是否在树上
+    int tag;            // 标记（用于多种颜色）
 }particlesMap[windowWidth][windowHeight];
 
 //bool (*particlesMap)[windowHeight] = new bool[windowWidth][windowHeight];
-pixels (*particles) = new pixels[maxPixels];
+pixels (*particles) = new pixels[maxPixels];        //一定数量的粒子
 
 //void mySetOnTree(int x,int y)
 //{
@@ -36,22 +36,22 @@ pixels (*particles) = new pixels[maxPixels];
 //    particlesMap[x][y]=true;
 //}
 
-void setMap(GLint x, GLint y, int tag)
+void setMap(GLint x, GLint y, int tag)      // 当粒子粘上的时候执行，在窗口像素点的二维数组结构体中做标记
 {
     particlesMap[x][y].onTree = true;
     particlesMap[x][y].tag = tag;
 }
 
-bool isNearTree(int x,int y, int tag)
+bool isNearTree(int x,int y, int tag)   // 判断是否在旁边
 {
     int xmin = x - 1 > -1 ? x - 1 : 0, xmax = x + 1 < windowWidth ? x + 1 : windowWidth - 1;
     int ymin = y - 1 > -1 ? y - 1 : 0, ymax = y + 1 < windowHeight ? y + 1 : windowHeight - 1;
-    for (int i = xmin; i <= xmax; i++)
+    for (int i = xmin; i <= xmax; i++)  // 判断周围8个点是否是树上的点
         for (int j = ymin; j <= ymax; j++)
         {
-            if (!(i == x && j == y) &&
-                particlesMap[i][j].tag == tag &&
-                particlesMap[i][j].onTree)
+            if (!(i == x && j == y) &&      // 除掉本身的点
+                particlesMap[i][j].tag == tag &&    //标签相同
+                particlesMap[i][j].onTree)  // 且周围有点在树上
             {
                 return true;
             }
@@ -74,6 +74,7 @@ void init()
     
     srand((unsigned)time(0));
     
+        // 窗口像素点数组结构体初始化
     for (GLint x = 0; x < windowWidth; x++) {
         for (GLint y = 0; y < windowHeight; y++) {
             particlesMap[x][y].onTree = false;
@@ -81,16 +82,18 @@ void init()
     }
     
     
-    // common
+    // 常规初始化
     for (GLint x = 0; x < maxPixels; x++)
     {
+        // init 函数包含 x 坐标、 y 坐标、移动半径、颜色值（标签）
+        // 下面使得粒子初始化随机在窗口中间，占据整个窗口 1 / 4 面积
         particles[x].init(rand() % (windowWidth / initRadiusRatio) + (windowWidth / 2 - windowWidth / initRadiusRatio / 2), rand() % (windowHeight / initRadiusRatio) + (windowHeight / 2 - windowHeight / initRadiusRatio / 2), movingRadius,
-                          rand() % 3);
-        //0);
+                          rand() % 3);  // 3 种颜色选用这个
+        //0);   // 一种颜色选用这个
     }
     
 #if(0)
-    // line
+    // 中间一条线
     for (GLint i = 0 ; i < windowWidth / 2; i++)
     {
         particles[i].init(i + windowWidth / 4, windowHeight / 2, movingRadius, 0);
@@ -100,7 +103,7 @@ void init()
 #endif
     
 #if(0)
-    // black hole
+    // 黑洞
     for (GLint x = 0; x < maxPixels / 5 ; x++) // 中心圆
     {
         particles[x].init(2 * (rand() % initRadius) * cos(x) + windowWidth / 2, 2 * (rand() % initRadius) * sin(x) + windowHeight / 2, movingRadius * 2, 0);
@@ -119,6 +122,7 @@ void init()
 
 void DLA()
 {
+    // 下面初始化3个粒子，如果只需要1个，将另外2个注释掉
     particles[0].init(windowWidth / 2, windowHeight / 5 * 3, movingRadius, 0);
     particles[0].setOnTree(true);
     setMap(particles[0].getPositionX(), particles[0].getPositionY(), 0);
@@ -132,9 +136,11 @@ void DLA()
     particles[2].setOnTree(true);
     setMap(particles[2].getPositionX(), particles[2].getPositionY(), 2);
     
-    
+    // 每个粒子移动一步
     for (GLint x = 0; x < maxPixels; x++)
     {
+        // 首先判断是否在树上，以及是否越界
+        // 如果没有，所有粒子移动一步
         if (!particles[x].isOnTree() && !particles[x].judgeOutOfRange(windowWidth, windowHeight))
         {
             particles[x].moveOneStep();
@@ -145,6 +151,7 @@ void DLA()
     {
         if(!particles[i].isOnTree() && !particles[i].judgeOutOfRange(windowWidth, windowHeight))
         {
+            // 通过窗口的二维数组，判断当前粒子所在位置 周围 有没有在树上的像素点
             if(isNearTree(particles[i].getPositionX(), particles[i].getPositionY(), particles[i].getTag()))
             {
                 particles[i].setOnTree(true);
@@ -154,7 +161,7 @@ void DLA()
     }
 }
 
-void drawDLA()
+void drawDLA()      // 绘制函数
 {
     for (GLint x = 0; x < maxPixels; x++)
     {
@@ -176,7 +183,7 @@ void Display()
     
     DLA();
     
-    for (GLint i = 0; i < maxPixels; i++) {
+    for (GLint i = 0; i < maxPixels; i++) {     // 每一帧update一次
         particles[i].update();
     }
     
