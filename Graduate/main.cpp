@@ -80,7 +80,6 @@ void init()
         }
     }
     
-    
     // 常规初始化
     for (GLint x = 0; x < maxPixels; x++)
     {
