@@ -140,14 +140,14 @@ bool pixels::judgeOutOfRange(GLint maxX, GLint maxY, GLint maxZ) {
 void pixels::setOnTree(bool onTree) {
   m_onTree = onTree;
 }
-bool pixels::isOnTree() {
+inline bool pixels::isOnTree() {
   return m_onTree;
 }
 
 void pixels::setDisappear(bool disappear) {
   m_disappear = disappear;
 }
-bool pixels::isDisappear() {
+inline bool pixels::isDisappear() {
   return m_disappear;
 }
 

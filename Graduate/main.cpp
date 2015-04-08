@@ -33,7 +33,7 @@ pixels (*particles) = new pixels[maxPixels];        //一定数量的粒子
 //    particlesMap[x][y]=true;
 //}
 
-void setMap(GLint x, GLint y, int tag) {     // 当粒子粘上的时候执行，在窗口像素点的二维数组结构体中做标记
+inline void setMap(GLint x, GLint y, int tag) {     // 当粒子粘上的时候执行，在窗口像素点的二维数组结构体中做标记
   particlesMap[x][y].onTree = true;
   particlesMap[x][y].tag = tag;
 }
@@ -80,8 +80,8 @@ void init() {
     // 下面使得粒子初始化随机在窗口中间，占据整个窗口 1 / 4 面积
     particles[x].init(rand() % (windowWidth / initRadiusRatio) + (windowWidth / 2 - windowWidth / initRadiusRatio / 2),
                       rand() % (windowHeight / initRadiusRatio) + (windowHeight / 2 - windowHeight / initRadiusRatio / 2), movingRadius,
-                      rand() % 3);  // 3 种颜色选用这个
-    //0);   // 一种颜色选用这个
+                      //rand() % 3);  // 3 种颜色选用这个
+    0);   // 一种颜色选用这个
   }
   
 #if(0)
@@ -161,7 +161,7 @@ void drawDLA() {     // 绘制函数
   }
 }
 
-void Display() {
+inline void Display() {
   glClear(GL_COLOR_BUFFER_BIT);
   
   DLA();

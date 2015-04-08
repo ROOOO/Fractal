@@ -27,7 +27,7 @@ const int windowHeight = 700;
 
 const int movingRadius = 30;    // 最大移动半径
 
-const int maxPixels = 30000;    // 最大粒子数
+const int maxPixels = 40000;    // 最大粒子数
 
 const int initRadiusRatio = 2; // 比例
 
