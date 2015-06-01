@@ -9,7 +9,7 @@
 #include "pixels.h"
 
 pixels::pixels() {
-  std::srand((unsigned)std::time(0));
+  std::srand((unsigned)time(0));
   
   m_direction.m_left = 1.0/8;
   m_direction.m_right = 1.0/8;
@@ -19,6 +19,11 @@ pixels::pixels() {
   m_direction.m_topRight = 1.0/8;
   m_direction.m_bottomLeft = 1.0/8;
   m_direction.m_bottomRight = 1.0/8;
+  
+  threeColor = false;
+  m_pace = 1;
+  m_displayRed = true;
+  blackBG = false;
 }
 
 pixels::~pixels() { }
@@ -58,18 +63,9 @@ void pixels::m_setColor(float red, float green, float blue) {
   m_color.m_blue = blue;
 }
 
-void pixels::movingProbability() {
-  m_directionProbability.m_upProbability = m_direction.m_up * 1000;
-  m_directionProbability.m_downProbability = m_direction.m_down * 1000 + m_directionProbability.m_upProbability;
-  m_directionProbability.m_leftProbability = m_direction.m_left * 1000 + m_directionProbability.m_downProbability;
-  m_directionProbability.m_rightProbability = m_direction.m_right * 1000 + m_directionProbability.m_leftProbability;
-  m_directionProbability.m_topLeftProbability = m_direction.m_topLeft * 1000 + m_directionProbability.m_rightProbability;
-  m_directionProbability.m_topRightProbability = m_direction.m_topRight * 1000 + m_directionProbability.m_topLeftProbability;
-  m_directionProbability.m_bottomLeftProbability = m_direction.m_bottomLeft * 1000 + m_directionProbability.m_topRightProbability;
-  m_directionProbability.m_bottomRightProbability = m_direction.m_bottomRight * 1000 + m_directionProbability.m_bottomRightProbability;
-}
 void pixels::movingProbability(float up, float down, float left, float right,
                                float upperLeft, float upperRight, float bottomLeft, float bottomRight) {
+  
   if (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight == 1.0) {
     m_direction.m_left = left;
     m_direction.m_right = right;
@@ -89,15 +85,6 @@ void pixels::movingProbability(float up, float down, float left, float right,
   m_directionProbability.m_topRightProbability = m_direction.m_topRight * 1000 + m_directionProbability.m_topLeftProbability;
   m_directionProbability.m_bottomLeftProbability = m_direction.m_bottomLeft * 1000 + m_directionProbability.m_topRightProbability;
   m_directionProbability.m_bottomRightProbability = m_direction.m_bottomRight * 1000 + m_directionProbability.m_bottomRightProbability;
-  
-  //    cout << "up: " << m_directionProbability.m_upProbability << "\n"
-  //    << "down: " << m_directionProbability.m_downProbability << "\n"
-  //    << "left: " << m_directionProbability.m_leftProbability << "\n"
-  //    << "right: " << m_directionProbability.m_rightProbability << "\n"
-  //    << "tl: " << m_directionProbability.m_topLeftProbability << "\n"
-  //    << "tr: " << m_directionProbability.m_topRightProbability << "\n"
-  //    << "bl: " << m_directionProbability.m_bottomLeftProbability << "\n"
-  //    << "br: " << m_directionProbability.m_bottomRightProbability << endl;
 }
 
 void pixels::m_setRadius(GLint radius) {
@@ -152,7 +139,7 @@ inline bool pixels::isDisappear() {
 }
 
 void pixels::moveOneStep() {
-  int step = 1;
+  int step = m_pace;
   int random = rand() % 1000;
   
   if (random <= m_directionProbability.m_upProbability) {
@@ -176,9 +163,13 @@ void pixels::moveOneStep() {
     m_position.x += step;
     m_position.y -= step;
   }
+  
+  if (maxPace) {
+      processPace();
+  }
 }
 
-void pixels::moveOneStep3D() {
+inline void pixels::moveOneStep3D() {
   m_position.x += rand() % 2 - 1;
   m_position.y += rand() % 2 - 1;
   m_position.z += rand() % 2 - 1;
@@ -192,6 +183,13 @@ GLint pixels::getPositionY() {
 }
 GLint pixels::getPositionZ() {
   return m_position.z;
+}
+
+void pixels::setPositionX(GLint x) {
+  m_position.x = x;
+}
+void pixels::setPositionY(GLint y) {
+  m_position.y = y;
 }
 
 void pixels::gravity(float gv, int type) { }
@@ -213,14 +211,20 @@ int pixels::getTag() {
 void pixels::update() {
   if (isOnTree()) {
     if (m_tag == 0) {
-      m_setColor(1.0, 1.0, 0.0);
+      if (!blackBG) {
+      m_setColor(0.0, 0.0, 0.0);
+      } else {
+        m_setColor(1.0, 1.0, 0.);
+      }
     } else if (m_tag == 1) {
       m_setColor(0.0, 1.0, 1.0);
     } else {
       m_setColor(1.0, 0.0, 1.0);
     }
   } else if (m_disappear) {
-    //    m_setColor(0.0, 0.0, 0.0);
+    if (!m_displayRed) {
+    m_setColor(0.0, 0.0, 0.0);
+    }
   } else {
     if (!is3D) {
       if (m_tag == 0) {
@@ -231,6 +235,32 @@ void pixels::update() {
         m_setColor(1.0, 0.0, 1.0);
       }
     }
-    m_setColor(1.0, 0.0, 0.0);
+    if (!m_displayRed) {
+      if (blackBG) {
+      m_setColor(0.0, 0., 0.);
+      } else {
+      m_setColor(1.0, 1.0, 1.0);
+      }
+      return;
+    }
+    if (!threeColor) {
+      m_setColor(1.0, 0.0, 0.0);  // 3种颜色需要注释这句话
+    }
   }
 }
+
+void pixels::processPace() {
+  m_pace *= 2;
+}
+int pixels::getPace() {
+  return m_pace;
+}
+void pixels::setOnePace(GLint pace) {
+  m_pace = pace;
+}
+
+void pixels::displayRed(bool TorF) {
+  m_displayRed = TorF;
+}
+
+

@@ -6,18 +6,72 @@
 //  Copyright (c) 2015年 King. All rights reserved.
 //
 
-//2015-01-07 19:22:03 ÷ÿ–¥2
-//2015-03-25 重写3
-
 #include "macro.h"
 //#include <assert.h>
 
-struct position {        // 用于3D交互，纪录鼠标位移、缩放
-  float tx, ty, tz;
-  float rx, ry, rz;
-  float s;
-  float angle;
-}pos;
+int maxPixels = 30000;    // 最大粒子数
+int onePace = 1;
+bool bg_isBlack = false;
+
+#define clean         0
+#define init_one       1
+#define init_three     2
+#define init_circle    3
+#define init_light     4
+#define init_centerLine 5
+#define init_blackHole  6
+#define init_oneLine 7
+#define init_one_2  8
+
+#define p_0   101
+#define p_1   102
+#define p_2   104
+#define p_3   108
+#define p_4   116
+#define p_5   132
+#define p_6   164
+#define p_add 200
+#define p_minus 201
+
+#define k_10  10000
+#define k_20  20000
+#define k_30  30000
+#define k_40  40000
+#define k_50  50000
+#define k_60  60000
+#define k_70  70000
+#define k_80  80000
+#define k_90  90000
+#define k_add 11111
+#define k_minus 22222
+
+#define redOn 10
+#define redOff 11
+
+#define blockEffect 999
+#define bg_white  998
+#define bg_black  997
+
+int init_Particles();
+int initial_One();
+int initial_Three();
+int initial_Circle();
+int initialLight();
+int initial_CenterLine();
+int initial_BlackHole();
+
+bool isBlockEffect = false;
+
+void setType() {
+  init_Particles();
+  
+  //  initial_One();      // 中间一个点
+  //    initial_Three();  // 三个点
+  //  initial_Circle();   // 一个圈，向内生长
+  //  initial_CenterLine(); // 中间一条线
+//  initial_BlackHole();  // 黑洞
+  //    initialLight(); // 趋光性模拟
+}
 
 struct particlesMap {  // 窗口所有像素点组成的二维数组
   bool onTree;        // 是否在树上
@@ -33,41 +87,60 @@ pixels (*particles) = new pixels[maxPixels];        //一定数量的粒子
 //    particlesMap[x][y]=true;
 //}
 
+typedef struct {
+  GLint x, y;
+}GLintPoint;
+GLintPoint mousePos[2];
+
+bool touched = false;
+bool isBlockLR = false;
+
 inline void setMap(GLint x, GLint y, int tag) {     // 当粒子粘上的时候执行，在窗口像素点的二维数组结构体中做标记
   particlesMap[x][y].onTree = true;
   particlesMap[x][y].tag = tag;
 }
 
-bool isNearTree(int x,int y, int tag) {  // 判断是否在旁边
-  int xmin = x - 1 > -1 ? x - 1 : 0, xmax = x + 1 < windowWidth ? x + 1 : windowWidth - 1;
-  int ymin = y - 1 > -1 ? y - 1 : 0, ymax = y + 1 < windowHeight ? y + 1 : windowHeight - 1;
-  for (int i = xmin; i <= xmax; i++) { // 判断周围8个点是否是树上的点
-    for (int j = ymin; j <= ymax; j++) {
-      if (!(i == x && j == y) &&      // 除掉本身的点
-          particlesMap[i][j].tag == tag &&    //标签相同
-          particlesMap[i][j].onTree) { // 且周围有点在树上
-        return true;
-      }
-    }
-  }
-  return false;
+struct position {        // 用于3D交互，纪录鼠标位移、缩放
+  float tx, ty, tz;
+  float rx, ry, rz;
+  float s;
+  float angle;
+}pos;
+
+class sunClass {
+public:
+  GLint x;
+  GLint y;
+  GLint size;
+  GLint n;
+}sun;
+
+bool light = false;
+bool circle = false;
+bool isClean = false;
+
+int cleanFunc() {
+  delete []particles;
+  particles = new pixels[maxPixels];
+  
+  glClear(GL_COLOR_BUFFER_BIT);
+  isClean = true;
+  light = false;
+  circle = false;
+  isBlockLR = false;
+  return 0;
 }
 
-void init() {
-  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize(windowWidth, windowHeight);
-  glutInitWindowPosition(600, 100);
-  glutCreateWindow("DLA Model");
+int init_Particles() {
+  delete []particles;
+  particles = new pixels[maxPixels];
   
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  light = false;
+  circle = false;
+  isBlockLR = false;
+  isBlockEffect = false;
   
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
-  
-  srand((unsigned)time(0));
-  
-  // 窗口像素点数组结构体初始化
+  // 像素点数组结构体初始化
   for (GLint x = 0; x < windowWidth; x++) {
     for (GLint y = 0; y < windowHeight; y++) {
       particlesMap[x][y].onTree = false;
@@ -75,46 +148,92 @@ void init() {
   }
   
   // 常规初始化
-  for (GLint x = 0; x < maxPixels; x++) {
+  for (int x = 0; x < maxPixels; x++) {
     // init 函数包含 x 坐标、 y 坐标、移动半径、颜色值（标签）
     // 下面使得粒子初始化随机在窗口中间，占据整个窗口 1 / 4 面积
     particles[x].init(rand() % (windowWidth / initRadiusRatio) + (windowWidth / 2 - windowWidth / initRadiusRatio / 2),
                       rand() % (windowHeight / initRadiusRatio) + (windowHeight / 2 - windowHeight / initRadiusRatio / 2), movingRadius,
                       //rand() % 3);  // 3 种颜色选用这个
-    0);   // 一种颜色选用这个
+                      0);   // 一种颜色选用这个
+    particles[x].threeColor = false;
+//    particles[x].movingProbability(0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0);
   }
   
-#if(0)
-  // 中间一条线
-  for (GLint i = 0 ; i < windowWidth / 2; i++) {
-    particles[i].init(i + windowWidth / 4, windowHeight / 2, movingRadius, 0);
-    particles[i].setOnTree(true);
-    setMap(i + windowWidth / 4, windowHeight / 2, 0);
-  }
-#endif
-  
-#if(0)
-  // 黑洞
-  for (GLint x = 0; x < maxPixels / 5 ; x++) { // 中心圆
-    particles[x].init(2 * (rand() % initRadius) * cos(x) + windowWidth / 2,
-                      2 * (rand() % initRadius) * sin(x) + windowHeight / 2,
-                      movingRadius * 2, 0);
-  }
-  
-  for (GLint x = maxPixels / 5; x < maxPixels * 4 / 5; x++) { // 中心圆
-    particles[x].init((initRadius) * cos(x) + windowWidth / 2,
-                      (initRadius) * sin(x) + windowHeight / 2,
-                      movingRadius * 2, 0);
-  }
-  
-  for (GLint x = 0; x < maxPixels; x++) {
-    particles[x].movingProbability(0.5, 0.5, 0, 0, 0, 0, 0, 0);
-  }
-#endif
+  return 0;
 }
 
-void DLA() {
-  // 下面初始化3个粒子，如果只需要1个，将另外2个注释掉
+bool isNearTree(int x,int y, int tag) {  // 判断是否在旁边
+  int xmin = x - 1 > -1 ? x - 1 : 0, xmax = x + 1 < windowWidth ? x + 1 : windowWidth - 1;
+  int ymin = y - 1 > -1 ? y - 1 : 0, ymax = y + 1 < windowHeight ? y + 1 : windowHeight - 1;
+  
+  srand((unsigned)time(0));
+  int random = rand() % 100;
+  
+  for (int i = xmin, count = 0; i <= xmax; i++, count++) { // 判断周围8个点是否是树上的点
+    for (int j = ymin; j <= ymax; j++, count++) {
+      if (!(i == x && j == y) &&      // 除掉本身的点
+          particlesMap[i][j].tag == tag &&    //标签相同
+          particlesMap[i][j].onTree) { // 且周围有点在树上
+        
+        if (!light) {
+          return true;    // 非趋光性取消注释这个
+        } else {
+          
+          // 趋光性采用下面这个
+          if (((x - i) * (sun.x - i) + (y - j) * (sun.y - j)) /
+              sqrt(double((x - i) * (x - i) + (y - j) * (y - j))) /
+              sqrt(double((sun.x - i) * (sun.x - i) + (sun.y - j) * (sun.y - j))) >= (sqrt(2) / 2)) {
+            if (random < 80) {
+              return true;
+            } else {
+              return false;
+            }
+          } else if (((x - i) * (sun.x - i) + (y - j) * (sun.y - j)) /
+                     sqrt(double((x - i) * (x - i) + (y - j) * (y - j))) /
+                     sqrt(double((sun.x - i) * (sun.x - i) + (sun.y - j) * (sun.y - j))) > 0) {
+            if (random < 50) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            if (random < 20) {
+              return true;
+            } else {
+              return false;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+int initial_One() { //  一个在中间的粒子
+  if (!isBlockEffect) {
+  init_Particles();
+  }
+  
+  particles[0].init(windowWidth / 2, windowHeight / 2, movingRadius, 0);
+  particles[0].setOnTree(true);
+  setMap(particles[0].getPositionX(), particles[0].getPositionY(), 0);
+  
+  return 0;
+}
+int initial_One_2() { //  一个在中间的粒子
+  init_Particles();
+  isBlockLR = true;
+  particles[0].init(windowWidth / 2, windowHeight / 2, movingRadius, 0);
+  particles[0].setOnTree(true);
+  setMap(particles[0].getPositionX(), particles[0].getPositionY(), 0);
+  
+  return 0;
+}
+
+int initial_Three() { // 3 个粒子的情况（不同颜色）
+  init_Particles();
+  
   particles[0].init(windowWidth / 2, windowHeight / 5 * 3, movingRadius, 0);
   particles[0].setOnTree(true);
   setMap(particles[0].getPositionX(), particles[0].getPositionY(), 0);
@@ -128,6 +247,127 @@ void DLA() {
   particles[2].setOnTree(true);
   setMap(particles[2].getPositionX(), particles[2].getPositionY(), 2);
   
+  for (GLint x = 0; x < maxPixels; x++) {
+    // init 函数包含 x 坐标、 y 坐标、移动半径、颜色值（标签）
+    // 下面使得粒子初始化随机在窗口中间，占据整个窗口 1 / 4 面积
+    particles[x].init(rand() % (windowWidth / initRadiusRatio) + (windowWidth / 2 - windowWidth / initRadiusRatio / 2),
+                      rand() % (windowHeight / initRadiusRatio) + (windowHeight / 2 - windowHeight / initRadiusRatio / 2), movingRadius,
+                      rand() % 3);  // 3 种颜色选用这个
+    particles[x].threeColor = true;
+    //    particles[x].movingProbability(0.5, 0.4,0.1,0,0,0,0,0);
+  }
+  
+  return 0;
+}
+
+int initial_Circle() { // 圈
+  init_Particles();
+  circle = true;
+  for (int i = 0; i < CircleRadius * 2 * 3; i++) {
+    particles[i].init(CircleRadius * cos((double)i) + windowWidth / 2, CircleRadius * sin((double)i) + windowHeight / 2, movingRadius, 0);
+    particles[i].setOnTree(true);
+    setMap(particles[i].getPositionX(), particles[i].getPositionY(), 0);
+  }
+  
+  return 0;
+}
+bool CircleOffRange(int i) {
+  if ((particles[i].getPositionX() - windowWidth / 2) * (particles[i].getPositionX() - windowWidth / 2)
+      + (particles[i].getPositionY() - windowHeight / 2) * (particles[i].getPositionY() - windowHeight / 2)
+      > CircleRadius * CircleRadius) {
+    return true;
+  }
+  
+  return false;
+}
+
+int initialLight() { // 光照
+  init_Particles();
+  light = true;
+  const int numberOfSeed = 20; // 种子数量
+  for (int i = 0; i < numberOfSeed; i++) {
+    particles[i].init(windowWidth / numberOfSeed * i + windowWidth / (numberOfSeed - 1) / 2, windowHeight / 3, 0, 0);
+    particles[i].setOnTree(true);
+    setMap(particles[i].getPositionX(), particles[0].getPositionY(), 0);
+  }
+  
+  for (int i = numberOfSeed; i < maxPixels; i++) {
+    particles[i].init(rand() % windowWidth,
+                      rand() % (windowHeight / initRadiusRatio) + (windowHeight / 2 - windowHeight / initRadiusRatio / 2),
+                      movingRadius, 0);
+    particles[i].setOnTree(false);
+    //    particles[i].movingProbability(0, 0, 0.1, 0.3, 0, 0.3, 0, 0.3);
+  }
+  
+  return 0;
+}
+bool judgeLightStop(int lightRadius, int i, GLint lightX, GLint lightY, GLint sunX, GLint sunY) {
+  if ((particles[i].getPositionX() - lightX) * (particles[i].getPositionX() - lightX)
+      + (particles[i].getPositionY() - lightY) * (particles[i].getPositionY() - lightY)
+      < lightRadius * lightRadius) {
+    return true;
+  }
+  return false;
+}
+
+int initial_CenterLine() {
+  init_Particles();
+  // 中间一条线
+  for (GLint i = 0 ; i < windowWidth / 2; i++) {
+    particles[i].init(i + windowWidth / 4, windowHeight / 2, movingRadius, 0);
+    particles[i].setOnTree(true);
+    setMap(i + windowWidth / 4, windowHeight / 2, 0);
+  }
+  
+  return 0;
+}
+
+int initial_BlackHole() {
+  init_Particles();
+  // 黑洞
+  initial_One();
+  
+  for (GLint x = 0; x < maxPixels / 5 ; x++) { // 中心圆
+    particles[x].init(2 * (rand() % initRadius) * cos(x) + windowWidth / 2,
+                      2 * (rand() % initRadius) * sin(x) + windowHeight / 2,
+                      movingRadius * 2, 0);
+  }
+  
+  for (GLint x = maxPixels / 5; x < maxPixels * 4 / 5; x++) { // 中心圆
+    particles[x].init((initRadius) * cos(x) + windowWidth / 2,
+                      (initRadius) * sin(x) + windowHeight / 2,
+                      movingRadius * 2, 0);
+  }
+  
+  //  for (GLint x = 0; x < maxPixels; x++) {
+  //    particles[x].movingProbability(0.5, 0.5, 0, 0, 0, 0, 0, 0);
+  //  }
+  
+  return 0;
+}
+
+void init() {
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+  glutInitWindowSize(windowWidth, windowHeight);
+  glutInitWindowPosition(100, 100);
+  glutCreateWindow("DLA Model");
+  
+  glClearColor(1.0, 1.0, 1.0, 0.0);
+  
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
+  
+  srand((unsigned)time(0));
+  
+  pos.rx = pos.ry = pos.tx = pos.ry = pos.rz = pos.tz = 0;
+  pos.s = 1;
+  pos.angle = 0;
+  
+  setType();
+}
+
+void DLA() {
   // 每个粒子移动一步
   for (GLint x = 0; x < maxPixels; x++) {
     // 首先判断是否在树上，以及是否越界
@@ -137,11 +377,56 @@ void DLA() {
     }
   }
   
+  
   for (int i = 0; i < maxPixels; i++) {
     if(!particles[i].isOnTree() && !particles[i].judgeOutOfRange(windowWidth, windowHeight)) {
       // 通过窗口的二维数组，判断当前粒子所在位置 周围 有没有在树上的像素点
+      
       if(isNearTree(particles[i].getPositionX(), particles[i].getPositionY(), particles[i].getTag())) {
+        int random = rand() % 100;
+        if (random < 40) {
+          //continue;
+          particles[i].setDisappear(true);
+          continue;
+        }
+        if (circle) {
+          // 下面的 if 用于屏蔽在圆外生成点，init() 中使用 initial_Circle(); 的时候取消注释
+          if (CircleOffRange(i)) {
+            continue;
+          }
+        } else if (light) {
+          if ((particles[i].getPositionX() - sun.x) * (particles[i].getPositionX() - sun.x) +
+              (particles[i].getPositionY() - sun.y) * (particles[i].getPositionY() - sun.y) <=
+              lightDisappearRadius * lightDisappearRadius) {
+            particles[i].setDisappear(true);
+            continue;
+          }
+        } else if (isBlockLR) {
+          random = rand() % 100;
+          
+          if (particles[i].getPositionY() > windowHeight / 2
+              && (particlesMap[particles[i].getPositionX() - 1][particles[i].getPositionY() - 1].onTree
+                  || particlesMap[particles[i].getPositionX()][particles[i].getPositionY() - 1].onTree
+                  || particlesMap[particles[i].getPositionX() + 1][particles[i].getPositionY() - 1].onTree)) {
+                if (random < 80) {
+                  particles[i].setDisappear(true);
+                  continue;
+                }
+              } else if (particles[i].getPositionY() < windowHeight / 2
+                         && (particlesMap[particles[i].getPositionX() - 1][particles[i].getPositionY() + 1].onTree
+                             || particlesMap[particles[i].getPositionX()][particles[i].getPositionY() + 1].onTree
+                             || particlesMap[particles[i].getPositionX() + 1][particles[i].getPositionY() + 1].onTree
+                             )) {
+                           if (random < 80) {
+                             particles[i].setDisappear(true);
+                             continue;
+                           }
+                         }
+        }
+        
+        
         particles[i].setOnTree(true);
+        
         setMap(particles[i].getPositionX(), particles[i].getPositionY(), particles[i].getTag());
       }
     }
@@ -149,8 +434,31 @@ void DLA() {
 }
 
 void drawDLA() {     // 绘制函数
+  glPushMatrix();
+  
+  glTranslatef(windowWidth / 2, windowHeight / 2, 0);
+  
+  glRotatef(pos.ry, 0, 0, 1);
+  glRotatef(pos.rx, 0, 0, -1);
+  
+  glTranslatef(-windowWidth / 2, -windowHeight / 2, 0);
+  
+  glPushMatrix();
+  glTranslatef(windowWidth / 2, windowHeight / 2, 0);
+  glScalef(pos.s, pos.s, pos.s);
+  glTranslatef(-windowWidth / 2, -windowHeight / 2, 0);
+  
   for (GLint x = 0; x < maxPixels; x++) {
     if(!particles[x].isDisappear()) {
+      if (isBlockEffect) {
+      if (abs(particles[x].getPositionX() - particles[0].getPositionX()) * abs(particles[x].getPositionX() - particles[0].getPositionX())
+          + abs(particles[x].getPositionY() - particles[0].getPositionY()) * abs(particles[x].getPositionY() - particles[0].getPositionY()) < 100 * 100
+          ) {
+        glPointSize(2.5);
+      } else {
+        glPointSize(1.0f);
+      }
+      }
       glBegin(GL_POINTS);
       {
         glColor3f(particles[x].getColorRed(), particles[x].getColorGreen(), particles[x].getColorBlue());
@@ -159,16 +467,78 @@ void drawDLA() {     // 绘制函数
       glEnd();
     }
   }
+  
+  glPopMatrix();
+  glPopMatrix();
+  
+  glutPostRedisplay();
 }
 
-inline void Display() {
-  glClear(GL_COLOR_BUFFER_BIT);
-  
-  DLA();
-  
+void drawSun() {
+  if (light) {
+    glPushMatrix();
+    
+    glTranslatef(windowWidth / 2, windowHeight / 2, 0);
+    
+    glRotatef(pos.ry, 0, 0, 1);
+    glRotatef(pos.rx, 0, 0, -1);
+    
+    glTranslatef(-windowWidth / 2, -windowHeight / 2, 0);
+    
+    glPushMatrix();
+    glTranslatef(windowWidth / 2, windowHeight / 2, 0);
+    glScalef(pos.s, pos.s, pos.s);
+    glTranslatef(-windowWidth / 2, -windowHeight / 2, 0);
+    
+    sun.size = 20;
+    sun.n = 1000;
+    
+    if (!touched) {
+      sun.x = windowWidth / 2;
+      sun.y = windowHeight / 2;
+      
+      //    } else {
+      //      sun.x = mousePos->x;
+      //      sun.y = mousePos->y;
+    }
+    
+    
+    glBegin(GL_TRIANGLE_FAN);
+    glColor3f(255, 255, 0);
+    for (int t = 0; t < 1000; t++) {
+      glVertex2d(sun.size * cos(2 * PI / sun.n * t) + sun.x, sun.size * sin(2 * PI / sun.n * t) + sun.y);
+    }
+    glEnd();
+    
+    glPopMatrix();
+    glPopMatrix();
+  }
+}
+
+void update() {
   for (GLint i = 0; i < maxPixels; i++) {     // 每一帧update一次
     particles[i].update();
   }
+}
+
+int countPixels() {
+  int count = 0;
+  for (int i = 0; i < maxPixels; i++) {
+    if (particles[i].isOnTree()) {
+      count++;
+    }
+  }
+  return count;
+}
+
+void Display() {
+  glClear(GL_COLOR_BUFFER_BIT);
+  
+  drawSun();
+  
+  DLA();
+  
+  update();
   
   drawDLA();
   
@@ -193,8 +563,6 @@ bool isNearTree3D(GLint x, GLint y, GLint z, GLint tag) {
   int ymin = y - 1 > -1 ? y - 1 : 0, ymax = y + 1 < max3DY ? y + 1 : max3DY - 1;
   int zmin = z - 1 > -1 ? z - 1 : 0, zmax = z + 1 < max3DZ ? z + 1 : max3DZ - 1;
   
-  //    cout << x << "   " << y << "    " << z << endl;
-  
   for (int i = xmin; i <= xmax; i++) {
     for (int j = ymin; j <= ymax; j++) {
       for (int k = zmin; k <= zmax; k++) {
@@ -206,24 +574,6 @@ bool isNearTree3D(GLint x, GLint y, GLint z, GLint tag) {
       }
     }
   }
-  
-  //    x = x > -1 ? x : 0; x = x < max3DX ? x : max3DX - 1;
-  //    y = y > -1 ? y : 0; y = y < max3DY ? y : max3DY - 1;
-  //    z = z > -1 ? z : 0; z = z < max3DZ ? z : max3DZ - 1;
-  //
-  //    if (particlesMap3D[xmin][y][z].tag == tag && particlesMap3D[xmin][y][z].onTree)
-  //        return true;
-  //    else if (particlesMap3D[xmax][y][z].tag == tag && particlesMap3D[xmax][y][z].onTree)
-  //        return true;
-  //    else if (particlesMap3D[x][ymin][z].tag == tag && particlesMap3D[x][ymin][z].onTree)
-  //        return true;
-  //    else if (particlesMap3D[x][ymax][z].tag == tag && particlesMap3D[x][ymax][z].onTree)
-  //        return true;
-  //    else if (particlesMap3D[x][y][zmin].tag == tag && particlesMap3D[x][y][zmin].onTree)
-  //        return true;
-  //    else if (particlesMap3D[x][y][zmax].tag == tag && particlesMap3D[x][y][zmax].onTree)
-  //        return true;
-  
   
   return false;
 }
@@ -272,12 +622,10 @@ void init3D() {
   pos.rx = pos.ry = pos.tx = pos.ry = pos.rz = pos.tz = 0;
   pos.s = 1;
   pos.angle = 0;
-  
-  //    glPointSize(1.0f);
 }
 
 void axis(double length) {
-  glLineWidth(5.0);
+  glLineWidth(2.0);
   glBegin(GL_LINES);
   {
     glVertex3d(0, 0, 0);
@@ -297,10 +645,12 @@ void axis(double length) {
 
 void drawAxis(double length)
 {
-  glPushMatrix();
-  glRotatef(pos.ry, 0, 1, 0);
-  glRotatef(pos.rx, 0, 0, 1);
-  glScalef(pos.s, pos.s, pos.s);
+  if (is3D) {
+    glPushMatrix();
+    glRotatef(pos.ry, 0, 1, 0);
+    glRotatef(pos.rx, 0, 0, 1);
+    glScalef(pos.s, pos.s, pos.s);
+  }
   
   glColor3d(0, 0, 1);
   axis(length);
@@ -317,7 +667,9 @@ void drawAxis(double length)
   axis(length);
   glPopMatrix();
   
-  glPopMatrix();
+  if (is3D) {
+    glPopMatrix();
+  }
 }
 
 void Grid(int gridLength) {
@@ -420,21 +772,52 @@ void display3D() {
   glutPostRedisplay();
 }
 
+bool pause = false;
+int lastPace = 1;
+
 void keyBoard(unsigned char key, int x, int y) {
   //DLA();
-  if (key == '+') {
+  if (key == 'z') {
     pos.s += 0.1;
-  } else if (key == '-') {
+  } else if (key == 'x') {
     pos.s -= 0.1;
+  } else if (key == 'w') {
+    sun.y += 10;
+    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+  } else if (key == 's') {
+    sun.y -= 10;
+    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+  } else if (key == 'a') {
+    sun.x -= 10;
+    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+  } else if (key == 'd') {
+    sun.x += 10;
+    
+  } else if (key == 'q') {
+    pos.rx += 5;
+  } else if (key == 'e') {
+    pos.rx -= 5;
+  } else if (key == ' ') {
+    if (pause) {
+      pause = false;
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(lastPace);
+      }
+    } else {
+      pause = true;
+
+      lastPace = particles[maxPixels - 1].getPace();
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(0);
+      }
+      cout << countPixels() << endl;
+    }
   }
+  
+  touched = true;
   
   glutPostRedisplay();
 }
-
-typedef struct {
-  GLint x, y;
-}GLintPoint;
-GLintPoint mousePos[2];
 
 void mouseMotion(int x, int y) {
   mousePos[1].x = x;
@@ -448,7 +831,240 @@ void mouse(int button, int state, int x, int y) {
   if (state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) {
     mousePos[0].x = x;
     mousePos[0].y = windowHeight - y;
+    touched = true;
   }
+}
+
+void processMenuEvents(int option) {
+  switch (option) {
+    case clean:
+      init_Particles();
+      break;
+    case init_one:
+      initial_One();
+      break;
+    case init_one_2:
+      initial_One_2();
+      break;
+    case init_three:
+      initial_Three();
+      break;
+    case init_light:
+      initialLight();
+      break;
+    case init_circle:
+      initial_Circle();
+      break;
+    case init_centerLine:
+      initial_CenterLine();
+      break;
+    case init_blackHole:
+      initial_BlackHole();
+      break;
+    case init_oneLine:
+      initial_CenterLine();
+      break;
+    case blockEffect:
+      init_Particles();
+      isBlockEffect = true;
+      break;
+    default:
+      break;
+  }
+}
+
+void processRedOnOff(int option) {
+  switch (option) {
+    case redOn:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].displayRed(true);
+      }
+      break;
+      case redOff:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].displayRed(false);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+void processParticlesNumberMenuEvents(int option) {
+  switch (option) {
+    case k_10:
+      maxPixels = 10000;
+      break;
+    case k_20:
+      maxPixels = 20000;
+      break;
+    case k_30:
+      maxPixels = 30000;
+      break;
+    case k_40:
+      maxPixels = 40000;
+      break;
+    case k_50:
+      maxPixels = 50000;
+      break;
+    case k_60:
+      maxPixels = 60000;
+      break;
+    case k_70:
+      maxPixels = 70000;
+      break;
+    case k_80:
+      maxPixels = 80000;
+      break;
+    case k_90:
+      maxPixels = 90000;
+      break;
+    case k_add:
+      maxPixels += 20000;
+      break;
+    case k_minus:
+      maxPixels -= 20000;
+      
+    default:
+      break;
+  }
+  cout << maxPixels << endl;
+  delete []particles;
+  particles = new pixels[maxPixels];
+  init_Particles();
+  glutSwapBuffers();
+  glutPostRedisplay();
+}
+
+void processPaceMenu(int option) {
+  switch (option) {
+    case p_0:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(1);
+      }
+      break;
+    case p_1:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(2);
+      }
+      break;
+    case p_2:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(4);
+      }
+      break;
+    case p_3:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(8);
+      }
+      break;
+    case p_4:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(16);
+      }
+      break;
+    case p_5:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(32);
+      }
+      break;
+    case p_6:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(64);
+      }
+      break;
+    case p_add:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(particles[i].getPace() + 2);
+      }
+      break;
+    case p_minus:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].setOnePace(particles[i].getPace() - 2);
+      }
+      break;
+      
+    default:
+      break;
+  }
+}
+
+void processBackgroundMenu(int option) {
+  switch (option) {
+    case bg_black:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].blackBG = true;
+      }
+      glClearColor(0., 0., 0., 0.);
+      glutPostRedisplay();
+      break;
+    case bg_white:
+      for (int i = 0; i < maxPixels; i++) {
+        particles[i].blackBG = false;
+      }
+      glClearColor(1.0, 1.0, 1.0, 0.0);
+      glutPostRedisplay();
+      break;
+      
+    default:
+      break;
+  }
+}
+
+void menu() {
+  int mainMenu, typeMenu, particlesNumMenu, redParticlesMenu, paceMenu, backgroundMenu;
+  
+  backgroundMenu = glutCreateMenu(processBackgroundMenu);
+  glutAddMenuEntry("Black Background", bg_black);
+  glutAddMenuEntry("White Background", bg_white);
+  
+  typeMenu = glutCreateMenu(processMenuEvents);
+  glutAddMenuEntry("One Point", init_one);
+  glutAddMenuEntry("One Point(Block)", init_one_2);
+  glutAddMenuEntry("Three Points", init_three);
+  glutAddMenuEntry("One Line", init_oneLine);
+  glutAddMenuEntry("Circle", init_circle);
+  glutAddMenuEntry("Light", init_light);
+  glutAddMenuEntry("Black Hole", init_blackHole);
+  
+  particlesNumMenu = glutCreateMenu(processParticlesNumberMenuEvents);
+  glutAddMenuEntry("10000", k_10);
+  glutAddMenuEntry("20000", k_20);
+  glutAddMenuEntry("30000", k_30);
+  glutAddMenuEntry("40000", k_40);
+  glutAddMenuEntry("50000", k_50);
+  glutAddMenuEntry("60000", k_60);
+  glutAddMenuEntry("70000", k_70);
+  glutAddMenuEntry("80000", k_80);
+  glutAddMenuEntry("90000", k_90);
+  glutAddMenuEntry("Add 20000", k_add);
+  glutAddMenuEntry("Minus 20000", k_minus);
+  
+  redParticlesMenu = glutCreateMenu(processRedOnOff);
+  glutAddMenuEntry("Red On", redOn);
+  glutAddMenuEntry("Red Off", redOff);
+  
+  paceMenu = glutCreateMenu(processPaceMenu);
+  glutAddMenuEntry("1", p_0);
+  glutAddMenuEntry("2", p_1);
+  glutAddMenuEntry("4", p_2);
+  glutAddMenuEntry("8", p_3);
+  glutAddMenuEntry("16", p_4);
+  glutAddMenuEntry("32", p_5);
+  glutAddMenuEntry("64", p_6);
+  glutAddMenuEntry("Add 2", p_add);
+  glutAddMenuEntry("Minus 2", p_minus);
+  
+  mainMenu = glutCreateMenu(processMenuEvents);
+  glutAddMenuEntry("Reset", clean);
+  glutAddSubMenu("Background", backgroundMenu);
+  glutAddMenuEntry("Shielding Effect", blockEffect);
+  glutAddSubMenu("Type", typeMenu);
+  glutAddSubMenu("Max Particles' Number", particlesNumMenu);
+  glutAddSubMenu("Red Switch", redParticlesMenu);
+  glutAddSubMenu("Set One Pace's Length", paceMenu);
+  
+  glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
 int main(int argc, char ** argv) {
@@ -465,6 +1081,8 @@ int main(int argc, char ** argv) {
   
   glutMouseFunc(mouse);
   glutMotionFunc(mouseMotion);
+  
+  menu();
   
   glutMainLoop();
 }

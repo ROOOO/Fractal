@@ -20,9 +20,9 @@ public:
   void init(GLint x, GLint y, GLint radius, int tag); //All the pixels need to be inited at first.
   void init3D(GLint x, GLint y, GLint z, GLint radius, int tag);
   
-  void movingProbability();       // 移动概率（一个默认，如果输入参数则需要概率总和为1，参数分别是 上、下、左、右   左上、右上、左下、右下）
-  void movingProbability(float up, float down, float left, float right,
-                         float upperLeft, float upperRight, float bottomLeft, float bottomRight);
+//  void movingProbability();       // 移动概率（一个默认，如果输入参数则需要概率总和为1，参数分别是 上、下、左、右   左上、右上、左下、右下）
+  void movingProbability(float up = 0.125, float down = 0.125, float left = 0.125, float right = 0.125,
+                         float upperLeft = 0.125, float upperRight = 0.125, float bottomLeft = 0.125, float bottomRight = 0.125);
   
   void moveOneStep(); //移动一步
   void moveOneStep3D();
@@ -34,6 +34,9 @@ public:
   GLint getPositionX();
   GLint getPositionY();
   GLint getPositionZ();
+  
+  void setPositionX(GLint);
+  void setPositionY(GLint);
   
   void setOnTree(bool onTree);   // 设置在树上
   bool isOnTree();        //  判断是否在树上，下面有个私有成员变量 m_onTree 用来保存是否在树上
@@ -53,6 +56,16 @@ public:
   
   // 每一帧都调用一次这个函数，更改粒子颜色
   void update();
+  
+  bool threeColor;
+  
+  int getPace();
+  void setOnePace(GLint pace);
+  void processPace();
+  
+  void displayRed(bool TorF);
+  
+  bool blackBG;
   
 private:
   void m_setRadius(GLint radius);     // 设置半径
@@ -111,6 +124,10 @@ private:
     GLint y;
     GLint z;
   }m_position;
+  
+  int m_pace;
+  
+  bool m_displayRed;
 };
 
 #endif /* defined(__Graduate__pixels__) */
