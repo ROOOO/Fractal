@@ -11,7 +11,9 @@
 
 int maxPixels = 30000;    // 最大粒子数
 int onePace = 1;
-bool bg_isBlack = false;
+bool drawRect = false;
+bool pause = false;
+GLint sandboxWidth = 0, sandboxHeight = 0;
 
 #define clean         0
 #define init_one       1
@@ -20,7 +22,6 @@ bool bg_isBlack = false;
 #define init_light     4
 #define init_centerLine 5
 #define init_blackHole  6
-#define init_oneLine 7
 #define init_one_2  8
 
 #define p_0   101
@@ -69,7 +70,7 @@ void setType() {
   //    initial_Three();  // 三个点
   //  initial_Circle();   // 一个圈，向内生长
   //  initial_CenterLine(); // 中间一条线
-//  initial_BlackHole();  // 黑洞
+  //  initial_BlackHole();  // 黑洞
   //    initialLight(); // 趋光性模拟
 }
 
@@ -80,12 +81,7 @@ struct particlesMap {  // 窗口所有像素点组成的二维数组
 
 pixels (*particles) = new pixels[maxPixels];        //一定数量的粒子
 
-//void mySetOnTree(int x,int y)
-//{
-//    assert(x>=0&&x<windowWidth);
-//    assert(y>0&&y<windowHeight);
-//    particlesMap[x][y]=true;
-//}
+bool isBlack = particles[maxPixels - 1].blackBG;
 
 typedef struct {
   GLint x, y;
@@ -131,6 +127,138 @@ int cleanFunc() {
   return 0;
 }
 
+int frame = 0;
+int curTime = 0, lastTime = 0;
+float fps = 0.0;
+char fpsText[8];
+
+void displayFPS() {
+  frame++;
+  curTime = glutGet(GLUT_ELAPSED_TIME);
+  
+  if (curTime - lastTime > 100) {
+    fps = frame * 1000.0 / (curTime - lastTime);
+    //    printf("%.1f\n", fps);
+    lastTime = curTime;
+    frame = 0;
+  }
+  sprintf(fpsText, "FPS : %.1f", fps);
+}
+
+void displayFPSText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string ) {
+  displayFPS();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char maxPixelsText[8];
+
+void displayMaxPixels() {
+  sprintf(maxPixelsText, "Max Pixels : %d", maxPixels);
+}
+
+void displayMaxPixelsText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string ) {
+  displayMaxPixels();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char paceText[4];
+
+void displayPace() {
+  sprintf(paceText, "Pace : %d", particles[maxPixels - 1].getPace());
+}
+
+void displayPaceText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string ) {
+  displayPace();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char typeText[16] = { "Type : Initial" };
+
+void displayType(char *str) {
+  sprintf(typeText, "Type : %s", str);
+}
+
+void displayTypeText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string ) {
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char sunText[32];
+
+void displaySun() {
+  sprintf(sunText, "Sun : x : %d   y : %d", sun.x, sun.y);
+}
+
+void displaySunText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string ) {
+  displaySun();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char totalOnTreePixels[8];
+int countPixels();
+
+void displayTotalOnTreePixels() {
+  sprintf(totalOnTreePixels, "Total seeds : %d", countPixels());
+}
+void displayTOtalOnTreePixelsText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string) {
+  displayTotalOnTreePixels();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
+char dimensionText[16];
+double coefficient = 0;
+void LinearRegression();
+
+void displayDimension() {
+  LinearRegression();
+  coefficient = (coefficient > 0 || coefficient < 4) ? coefficient : 0;
+  sprintf(dimensionText, "Fractal Dimension : %.3lf", coefficient);
+}
+void displayDimensionText(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b, const char *string) {
+  displayDimension();
+  
+  glColor3f(r, g, b);
+  glRasterPos2f(x, y);
+  for( int i = 0; i < strlen(string); i++ ) {
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, string[i]);
+  }
+  glutPostRedisplay();
+}
+
 int init_Particles() {
   delete []particles;
   particles = new pixels[maxPixels];
@@ -139,6 +267,7 @@ int init_Particles() {
   circle = false;
   isBlockLR = false;
   isBlockEffect = false;
+  drawRect = false;
   
   // 像素点数组结构体初始化
   for (GLint x = 0; x < windowWidth; x++) {
@@ -156,7 +285,8 @@ int init_Particles() {
                       //rand() % 3);  // 3 种颜色选用这个
                       0);   // 一种颜色选用这个
     particles[x].threeColor = false;
-//    particles[x].movingProbability(0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0);
+    particles[x].blackBG = isBlack;
+    //    particles[x].movingProbability(0.25, 0.25, 0.25, 0.25, 0, 0, 0, 0);
   }
   
   return 0;
@@ -212,7 +342,7 @@ bool isNearTree(int x,int y, int tag) {  // 判断是否在旁边
 
 int initial_One() { //  一个在中间的粒子
   if (!isBlockEffect) {
-  init_Particles();
+    init_Particles();
   }
   
   particles[0].init(windowWidth / 2, windowHeight / 2, movingRadius, 0);
@@ -348,7 +478,7 @@ int initial_BlackHole() {
 
 void init() {
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize(windowWidth, windowHeight);
+  glutInitWindowSize(windowWidth * 1.5, windowHeight);
   glutInitWindowPosition(100, 100);
   glutCreateWindow("DLA Model");
   
@@ -356,7 +486,7 @@ void init() {
   
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
+  gluOrtho2D(0.0, windowWidth * 1.5, 0.0, windowHeight);
   
   srand((unsigned)time(0));
   
@@ -424,7 +554,6 @@ void DLA() {
                          }
         }
         
-        
         particles[i].setOnTree(true);
         
         setMap(particles[i].getPositionX(), particles[i].getPositionY(), particles[i].getTag());
@@ -451,13 +580,13 @@ void drawDLA() {     // 绘制函数
   for (GLint x = 0; x < maxPixels; x++) {
     if(!particles[x].isDisappear()) {
       if (isBlockEffect) {
-      if (abs(particles[x].getPositionX() - particles[0].getPositionX()) * abs(particles[x].getPositionX() - particles[0].getPositionX())
-          + abs(particles[x].getPositionY() - particles[0].getPositionY()) * abs(particles[x].getPositionY() - particles[0].getPositionY()) < 100 * 100
-          ) {
-        glPointSize(2.5);
-      } else {
-        glPointSize(1.0f);
-      }
+        if (abs(particles[x].getPositionX() - particles[0].getPositionX()) * abs(particles[x].getPositionX() - particles[0].getPositionX())
+            + abs(particles[x].getPositionY() - particles[0].getPositionY()) * abs(particles[x].getPositionY() - particles[0].getPositionY()) < 100 * 100
+            ) {
+          glPointSize(2.5);
+        } else {
+          glPointSize(1.0f);
+        }
       }
       glBegin(GL_POINTS);
       {
@@ -531,6 +660,146 @@ int countPixels() {
   return count;
 }
 
+void displayTexts() {
+  if (!particles[0].blackBG) {
+    displayFPSText(0, 0, 0.0, 0.0, 0.0, fpsText);
+    displayMaxPixelsText(windowWidth + 50, windowHeight - 50, 0.0, 0.0, 0.0, maxPixelsText);
+    displayPaceText(windowWidth + 50, windowHeight - 100, 0.0, 0., 0., paceText);
+    displayTypeText(windowWidth + 50, windowHeight - 150, 0., 0.0, 0., typeText);
+    displayTOtalOnTreePixelsText(windowWidth + 50, windowHeight - 200, 0., 0., 0., totalOnTreePixels);
+    if (pause) {
+    displayDimensionText(windowWidth + 50, windowHeight - 250, 0., 0., 0., dimensionText);
+    }
+    if (light) {
+      displaySunText(windowWidth + 50, windowHeight - 300, 0., 0., 0., sunText);
+    }
+    
+  } else {
+    displayFPSText(0, 0, 1.0, 1.0, 1.0, fpsText);
+    displayMaxPixelsText(windowWidth + 50, windowHeight - 50, 1.0, 1.0, 1.0, maxPixelsText);
+    displayPaceText(windowWidth + 50, windowHeight - 100, 1.0, 1., 1., paceText);
+    displayTypeText(windowWidth + 50, windowHeight - 150, 1., 1.0, 1., typeText);
+    displayTOtalOnTreePixelsText(windowWidth + 50, windowHeight - 200, 1., 1., 1., totalOnTreePixels);
+    if (pause) {
+    displayDimensionText(windowWidth + 50, windowHeight - 250, 1., 1., 1., dimensionText);
+    }
+    if (light) {
+      displaySunText(windowWidth + 50, windowHeight - 300, 1., 1., 1., sunText);
+    }
+  }
+}
+
+int countPixelsInBox[10];
+
+void calculateDimension(GLint maxX, GLint maxY, GLint particleX, GLint particleY) {
+  sandboxWidth = abs(maxX - particleX), sandboxHeight = abs(maxY - particleY);
+  
+  sandboxWidth = sandboxWidth / 100 * 100 + (sandboxWidth - sandboxWidth / 100 * 100) / 10 * 10;
+  sandboxHeight = sandboxHeight / 100 * 100 + (sandboxHeight - sandboxHeight / 100 * 100) / 10 * 10;
+  
+  for (int i = 0; i < 10; i++) {
+    int count = 0;
+    for (int x = 0; x < maxPixels; x++) {
+      if (particles[x].isOnTree()
+          && abs(particles[x].getPositionX() - particleX) < sandboxWidth * (i + 1) * 0.1
+          && abs(particles[x].getPositionY() - particleY) < sandboxHeight * (i + 1) * 0.1) {
+        count++;
+      }
+    }
+    countPixelsInBox[i] = count;
+  }
+}
+
+GLint maxParticlesX(int seedIndex) {
+  GLint max = particles[seedIndex].getPositionX();
+  GLint min = particles[seedIndex].getPositionX();
+  
+  for (int i = 0; i < maxPixels; i++) {
+    if (particles[i].getTag() == particles[seedIndex].getTag() && particles[i].isOnTree()) {
+      if (particles[i].getPositionX() > max) {
+        max = particles[i].getPositionX();
+      } else if (particles[i].getPositionX() < min) {
+        min = particles[i].getPositionX();
+      }
+    }
+  }
+  
+  return (max - particles[seedIndex].getPositionX()) > (particles[seedIndex].getPositionX() - min) ? max: min;
+}
+
+void calculateFractalDimension(int seedIndex) {
+  calculateDimension(
+                     maxParticlesX(seedIndex),
+                     maxParticlesX(seedIndex),
+                     particles[seedIndex].getPositionX(),
+                     particles[seedIndex].getPositionY());
+}
+
+GLint sandboxWidthArr[10];
+
+void displayRect(GLfloat red, GLfloat green, GLfloat blue) {
+  for (int i = 0; i < 10; i++) {
+    sandboxWidthArr[i] = sandboxWidth * (i + 1) * 0.1;
+    glColor3f(red, green, blue);
+    glBegin(GL_LINE_LOOP);
+    {
+      glVertex2i(particles[0].getPositionX() - sandboxWidth * (i + 1) * 0.1, particles[0].getPositionY() + sandboxHeight * (i + 1) * 0.1);
+      glVertex2i(particles[0].getPositionX() + sandboxWidth * (i + 1) * 0.1, particles[0].getPositionY() + sandboxHeight * (i + 1) * 0.1);
+      glVertex2i(particles[0].getPositionX() + sandboxWidth * (i + 1) * 0.1, particles[0].getPositionY() - sandboxHeight * (i + 1) * 0.1);
+      glVertex2i(particles[0].getPositionX() - sandboxWidth * (i + 1) * 0.1, particles[0].getPositionY() - sandboxHeight * (i + 1) * 0.1);
+    }
+    glEnd();
+  }
+}
+
+double a, b;
+
+void LinearRegression() {
+  
+  double Lxx = 0.0, Lxy = 0.0, xa = 0.0, ya = 0.0;
+  
+  double yi[10], xi[10];
+  for (int i = 0; i < 10; i++) {
+    yi[i] = log10((double)countPixelsInBox[i]);
+    xi[i] = log10((double)sandboxWidth * (i + 1) * 0.1);
+    
+    xa += xi[i];
+    ya += yi[i];
+  }
+
+  xa /= 10;                                     // X平均值
+  ya /= 10;                                     // Y平均值
+  for (int i = 0; i < 10; i++) {
+    Lxx += (xi[i] - xa) * (xi[i] - xa);             // Lxx = Sum((X - Xa)平方)
+    Lxy += (xi[i] - xa) * (yi[i] - ya);       // Lxy = Sum((X - Xa)(Y - Ya))
+  }
+  
+  b = Lxy / Lxx;                                 // b = Lxy / Lxx
+  a = ya - b * xa;                              // a = Ya - b*Xa
+  
+  
+  coefficient = b;
+//  cout << "a:" << a << "   b:   " << b << endl;
+}
+
+void drawAxis(double);
+
+void drawAxis2D() {
+  glPushMatrix();
+  
+  glTranslatef(windowWidth , windowHeight - 600, 0);
+  drawAxis(200);
+  for (double x = 0; x < sandboxWidth; x += 10) {
+    glColor3b(0, 0, 0);
+    glBegin(GL_LINE_STRIP);
+    {
+      glVertex2d(x, x * b + a);
+    }
+    glEnd();
+  }
+  glPopMatrix();
+}
+
 void Display() {
   glClear(GL_COLOR_BUFFER_BIT);
   
@@ -541,6 +810,20 @@ void Display() {
   update();
   
   drawDLA();
+  
+  displayTexts();
+  
+  if (drawRect) {
+    if (!particles[maxPixels - 1].blackBG) {
+      displayRect(0., 0., 0.);
+    } else {
+      displayRect(1., 1., 1.);
+    }
+  }
+  
+//  if (pause) {
+//  drawAxis2D();
+//  }
   
   glutSwapBuffers();
   glutPostRedisplay();
@@ -772,7 +1055,6 @@ void display3D() {
   glutPostRedisplay();
 }
 
-bool pause = false;
 int lastPace = 1;
 
 void keyBoard(unsigned char key, int x, int y) {
@@ -783,13 +1065,13 @@ void keyBoard(unsigned char key, int x, int y) {
     pos.s -= 0.1;
   } else if (key == 'w') {
     sun.y += 10;
-    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+    //    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
   } else if (key == 's') {
     sun.y -= 10;
-    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+    //    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
   } else if (key == 'a') {
     sun.x -= 10;
-    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
+    //    cout << "Sun: x:" << sun.x << "  " << "y: " << sun.y << endl;
   } else if (key == 'd') {
     sun.x += 10;
     
@@ -800,18 +1082,32 @@ void keyBoard(unsigned char key, int x, int y) {
   } else if (key == ' ') {
     if (pause) {
       pause = false;
+      drawRect = false;
       for (int i = 0; i < maxPixels; i++) {
         particles[i].setOnePace(lastPace);
       }
     } else {
       pause = true;
-
+      
       lastPace = particles[maxPixels - 1].getPace();
       for (int i = 0; i < maxPixels; i++) {
         particles[i].setOnePace(0);
       }
-      cout << countPixels() << endl;
+      //      cout << "Seed Count: "<< countPixels() << endl;
     }
+  } else if (key == 'c') {
+    if (drawRect) {
+      drawRect = false;
+    } else {
+      drawRect = true;
+      calculateFractalDimension(0);
+      
+      for (int i = 0; i < 10; i++) {
+//        cout << countPixelsInBox[i] << "  r: " << sandboxWidth * (i + 1) * 0.1 << endl;
+//        cout << log10((double)countPixelsInBox[i]) / log10((double)sandboxWidth * (i + 1) * 0.1) << endl;
+      }
+    }
+//     LinearRegression();
   }
   
   touched = true;
@@ -839,34 +1135,44 @@ void processMenuEvents(int option) {
   switch (option) {
     case clean:
       init_Particles();
+      displayType("Initial.");
       break;
     case init_one:
       initial_One();
+      if (isBlockEffect) {
+        displayType("Shielding Effect.");
+      } else {
+        displayType("One Seed.");
+      }
       break;
     case init_one_2:
       initial_One_2();
+      displayType("One seed.");
       break;
     case init_three:
       initial_Three();
+      displayType("Multiple seeds.");
       break;
     case init_light:
       initialLight();
+      displayType("Phototaxis.");
       break;
     case init_circle:
       initial_Circle();
+      displayType("Circle.");
       break;
     case init_centerLine:
       initial_CenterLine();
+      displayType("Line.");
       break;
     case init_blackHole:
       initial_BlackHole();
-      break;
-    case init_oneLine:
-      initial_CenterLine();
+      displayType("One seed.");
       break;
     case blockEffect:
       init_Particles();
       isBlockEffect = true;
+      displayType("Shielding Effect");
       break;
     default:
       break;
@@ -880,7 +1186,7 @@ void processRedOnOff(int option) {
         particles[i].displayRed(true);
       }
       break;
-      case redOff:
+    case redOff:
       for (int i = 0; i < maxPixels; i++) {
         particles[i].displayRed(false);
       }
@@ -928,7 +1234,7 @@ void processParticlesNumberMenuEvents(int option) {
     default:
       break;
   }
-  cout << maxPixels << endl;
+  //  cout << "Max Pixels: " <<maxPixels << endl;
   delete []particles;
   particles = new pixels[maxPixels];
   init_Particles();
@@ -995,6 +1301,7 @@ void processBackgroundMenu(int option) {
       for (int i = 0; i < maxPixels; i++) {
         particles[i].blackBG = true;
       }
+      isBlack = true;
       glClearColor(0., 0., 0., 0.);
       glutPostRedisplay();
       break;
@@ -1002,6 +1309,7 @@ void processBackgroundMenu(int option) {
       for (int i = 0; i < maxPixels; i++) {
         particles[i].blackBG = false;
       }
+      isBlack = false;
       glClearColor(1.0, 1.0, 1.0, 0.0);
       glutPostRedisplay();
       break;
@@ -1022,7 +1330,7 @@ void menu() {
   glutAddMenuEntry("One Point", init_one);
   glutAddMenuEntry("One Point(Block)", init_one_2);
   glutAddMenuEntry("Three Points", init_three);
-  glutAddMenuEntry("One Line", init_oneLine);
+  glutAddMenuEntry("One Line", init_centerLine);
   glutAddMenuEntry("Circle", init_circle);
   glutAddMenuEntry("Light", init_light);
   glutAddMenuEntry("Black Hole", init_blackHole);

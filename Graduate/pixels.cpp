@@ -133,6 +133,7 @@ inline bool pixels::isOnTree() {
 
 void pixels::setDisappear(bool disappear) {
   m_disappear = disappear;
+  this->~pixels();
 }
 inline bool pixels::isDisappear() {
   return m_disappear;
