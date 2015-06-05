@@ -34,7 +34,7 @@ const GLint lightDisappearRadius = 80; // 距离太阳多近就消失
 const int windowWidth = 700;
 const int windowHeight = 700;
 
-const int movingRadius = 30;    // 最大移动半径
+const int movingRadius = 80;    // 最大移动半径
 
 const int initRadiusRatio = 2; // 比例
 

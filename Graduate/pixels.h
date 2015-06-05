@@ -53,6 +53,7 @@ public:
   
   // 获取标签
   int getTag();
+  void setTag(int tag);
   
   // 每一帧都调用一次这个函数，更改粒子颜色
   void update();
@@ -66,6 +67,19 @@ public:
   void displayRed(bool TorF);
   
   bool blackBG;
+  
+  struct m_direction { // 方向
+    float m_up;
+    float m_down;
+    float m_left;
+    float m_right;
+    float m_topLeft;
+    float m_topRight;
+    float m_bottomLeft;
+    float m_bottomRight;
+  }m_direction;
+  
+  bool m_shieldingEffect;
   
 private:
   void m_setRadius(GLint radius);     // 设置半径
@@ -84,17 +98,6 @@ private:
   }m_color;
   
   int m_tag; // 标签
-  
-  struct m_direction { // 方向
-    float m_up;
-    float m_down;
-    float m_left;
-    float m_right;
-    float m_topLeft;
-    float m_topRight;
-    float m_bottomLeft;
-    float m_bottomRight;
-  }m_direction;
   
   struct m_directionProbability { // 方向概率
     int m_upProbability;

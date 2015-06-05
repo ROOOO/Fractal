@@ -24,6 +24,7 @@ pixels::pixels() {
   m_pace = 1;
   m_displayRed = true;
   blackBG = false;
+  m_shieldingEffect = false;
 }
 
 pixels::~pixels() { }
@@ -75,6 +76,15 @@ void pixels::movingProbability(float up, float down, float left, float right,
     m_direction.m_topRight = upperRight;
     m_direction.m_bottomLeft = bottomLeft;
     m_direction.m_bottomRight = bottomRight;
+  } else if (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight > 1.0){
+    m_direction.m_left = left / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_right = right / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_up = up / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_down = down / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_topLeft = upperLeft / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_topRight = upperRight / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_bottomLeft = bottomLeft / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
+    m_direction.m_bottomRight = bottomRight / (up + down + left + right + upperLeft + upperRight + bottomLeft + bottomRight);
   }
   
   m_directionProbability.m_upProbability = m_direction.m_up * 1000;
@@ -208,19 +218,23 @@ GLfloat pixels::getColorBlue() {
 int pixels::getTag() {
   return m_tag;
 }
+void pixels::setTag(int tag) {
+  m_tag = tag;
+}
 
 void pixels::update() {
   if (isOnTree()) {
     if (m_tag == 0) {
       if (!blackBG) {
       m_setColor(0.0, 0.0, 0.0);
+//        m_setColor(1.0, 0., 0.);
       } else {
         m_setColor(1.0, 1.0, 0.);
       }
     } else if (m_tag == 1) {
-      m_setColor(0.0, 1.0, 1.0);
+      m_setColor(0.0, 1.0, 0.0);
     } else {
-      m_setColor(1.0, 0.0, 1.0);
+      m_setColor(0.0, 0.0, 1.0);
     }
   } else if (m_disappear) {
     if (!m_displayRed) {
@@ -229,11 +243,11 @@ void pixels::update() {
   } else {
     if (!is3D) {
       if (m_tag == 0) {
-        m_setColor(1.0, 1.0, 0.0);
+        m_setColor(1.0, 0.0, 0.0);
       } else if (m_tag == 1) {
-        m_setColor(0.0, 1.0, 1.0);
+        m_setColor(0.0, 1.0, 0.0);
       } else {
-        m_setColor(1.0, 0.0, 1.0);
+        m_setColor(0.0, 0.0, 1.0);
       }
     }
     if (!m_displayRed) {
@@ -245,7 +259,7 @@ void pixels::update() {
       return;
     }
     if (!threeColor) {
-      m_setColor(1.0, 0.0, 0.0);  // 3种颜色需要注释这句话
+      m_setColor(1.0, 0.0, 0.0);
     }
   }
 }
